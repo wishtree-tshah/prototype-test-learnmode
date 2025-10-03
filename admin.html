@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AceMedC Admin Panel</title>
+    <style>
+        :root {
+            --brand-green: #0b3d2e;
+            --brand-accent: #2c6e49;
+            --text-dark: #222;
+            --text-light: #666;
+            --error-red: #c62828;
+            --success-green: #2e7d32;
+            --bg-light: #f4f6f8;
+            --bg-white: #fff;
+            --border-color: #e0e0e0;
+            --radius: 6px;
+        }
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Arial, sans-serif;
+            background: var(--bg-light);
+            color: var(--text-dark);
+        }
+        * { box-sizing: border-box; }
+        .hidden { display: none !important; }
+
+        /* --- Login Page --- */
+        .login-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        .login-card {
+            background: var(--bg-white);
+            padding: 2.5rem;
+            border-radius: var(--radius);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        .login-card h1 { margin-top: 0; }
+        .form-group { margin-bottom: 1.5rem; text-align: left; }
+        label { display: block; margin-bottom: 0.5rem; font-weight: 500; }
+        input {
+            width: 100%; padding: 0.75rem; font-size: 1rem;
+            border: 1px solid var(--border-color); border-radius: var(--radius);
+        }
+        .btn {
+            display: inline-block; background: var(--brand-green); color: #fff;
+            padding: 0.75rem 1.5rem; border: none; border-radius: var(--radius);
+            cursor: pointer; text-decoration: none; font-size: 1rem; font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        .btn:hover { background: var(--brand-accent); }
+        .btn.full-width { display: block; width: 100%; text-align: center; }
+        .btn-secondary { background: var(--bg-white); color: var(--brand-green); border: 1px solid var(--brand-green); }
+        .btn-secondary:hover { background: #f0f0f0; }
+        .btn-danger { background: var(--error-red); }
+        .btn-danger:hover { background: #d32f2f; }
+
+        /* --- Admin Panel Layout --- */
+        .admin-panel { display: flex; height: 100vh; }
+        .sidebar {
+            width: 250px;
+            background: var(--brand-green);
+            color: #fff;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+        }
+        .sidebar .logo { font-size: 1.5rem; font-weight: bold; padding: 1rem; text-align: center; }
+        .sidebar-nav { flex-grow: 1; }
+        .sidebar-nav a {
+            display: block; padding: 0.85rem 1rem; text-decoration: none;
+            color: #e0e0e0; border-radius: var(--radius); margin-bottom: 0.5rem;
+            transition: background-color 0.2s, color 0.2s;
+        }
+        .sidebar-nav a:hover { background-color: var(--brand-accent); color: #fff; }
+        .sidebar-nav a.active { background-color: var(--bg-white); color: var(--brand-green); font-weight: 600; }
+        .sidebar .logout-btn { margin-top: auto; }
+
+        .main-content { flex-grow: 1; overflow-y: auto; }
+        .content-header {
+            background: var(--bg-white); padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .content-header h1 { margin: 0; font-size: 1.8rem; }
+        .content-body { padding: 2rem; }
+        .admin-page { display: none; }
+        .admin-page.active { display: block; }
+
+        /* --- Widgets & Cards --- */
+        .card { background: var(--bg-white); padding: 1.5rem; border-radius: var(--radius); box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 1.5rem; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1rem; }
+        .card-header h2 { margin: 0; font-size: 1.2rem; }
+        .summary-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; }
+        .summary-card { text-align: center; }
+        .summary-card .value { font-size: 2.5rem; font-weight: 600; color: var(--brand-accent); }
+        .summary-card .label { font-size: 1rem; color: var(--text-light); }
+
+        /* --- Tables --- */
+        .table-wrapper { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 0.85rem 1rem; text-align: left; border-bottom: 1px solid var(--border-color); }
+        thead th { background: #f9fafb; font-weight: 600; }
+        tbody tr:hover { background: #f9f9f9; }
+        .status-badge { padding: 0.25rem 0.6rem; border-radius: 12px; font-size: 0.8rem; font-weight: 500; }
+        .status-success { background: #e8f5e9; color: var(--success-green); }
+        .status-failed { background: #ffebee; color: var(--error-red); }
+        .status-reviewed { background: #e3f2fd; color: #1976d2; }
+
+        /* --- File Upload --- */
+        .upload-area { border: 2px dashed var(--border-color); border-radius: var(--radius); padding: 2rem; text-align: center; }
+        .upload-area p { margin: 0.5rem 0; }
+        .upload-area .btn { margin-top: 1rem; }
+        .upload-error { color: var(--error-red); margin-top: 1rem; font-weight: 500; }
+
+        /* --- Modal --- */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: var(--bg-white); padding: 2rem; border-radius: var(--radius); max-width: 600px; width: 90%; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+        .modal-header h2 { margin: 0; }
+        .modal-header .close-btn { font-size: 1.5rem; cursor: pointer; border: none; background: none; }
+        .modal-body .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        .modal-footer { margin-top: 2rem; text-align: right; }
+        .modal-footer .btn { margin-left: 0.5rem; }
+    </style>
+</head>
+<body>
+
+    <!-- 1. Login Screen -->
+    <div id="adminLogin" class="login-container">
+        <div class="login-card">
+            <h1>Admin Panel</h1>
+            <p>Please sign in to continue.</p>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="adminEmail">Email</label>
+                    <input type="email" id="adminEmail" value="admin@acemedc.com">
+                </div>
+                <div class="form-group">
+                    <label for="adminPassword">Password</label>
+                    <input type="password" id="adminPassword" value="password">
+                </div>
+                <button type="submit" class="btn full-width">Sign In</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 2. Main Admin Panel (hidden by default) -->
+    <div id="adminPanel" class="admin-panel hidden">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">AceMedC</div>
+            <nav class="sidebar-nav">
+                <a href="#dashboard" data-page="adminDashboard" class="active">📊 Dashboard</a>
+                <a href="#questions" data-page="adminQuestions">❓ Question Bank</a>
+                <a href="#subscriptions" data-page="adminSubscriptions">💳 Subscriptions</a>
+                <a href="#payments" data-page="adminPayments">💰 Payment Logs</a>
+                <a href="#users" data-page="adminUsers">👥 User Support</a>
+                <a href="#contact" data-page="adminContact">📨 Contact Requests</a>
+            </nav>
+            <button id="logoutBtn" class="btn btn-secondary full-width logout-btn">Logout</button>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="content-header">
+                <h1 id="pageTitle">Dashboard</h1>
+            </header>
+            <div class="content-body">
+                <!-- Dashboard Page -->
+                <section id="adminDashboard" class="admin-page active">
+                    <div class="summary-cards">
+                        <div class="card summary-card">
+                            <div class="value">1,250</div>
+                            <div class="label">Total Registered Users</div>
+                        </div>
+                        <div class="card summary-card">
+                            <div class="value">342</div>
+                            <div class="label">Total Active Subscriptions</div>
+                        </div>
+                        <div class="card summary-card">
+                            <div class="value">$15,890</div>
+                            <div class="label">Total Payments Received</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Question Bank Page -->
+                <section id="adminQuestions" class="admin-page">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2>Bulk Upload Questions</h2>
+                        </div>
+                        <div class="upload-area">
+                            <p>Drag & drop your Excel/CSV file here or click to upload.</p>
+                            <p><small>Ensure the file matches the <a href="#">predefined template</a>.</small></p>
+                            <input type="file" id="questionFile" class="hidden">
+                            <button class="btn" onclick="document.getElementById('questionFile').click()">Choose File</button>
+                            <div id="uploadError" class="upload-error hidden">Error: File rejected. Please check for missing fields and try again.</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Subscriptions Page -->
+                <section id="adminSubscriptions" class="admin-page">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2>All Subscriptions</h2>
+                            <button id="inviteUserBtn" class="btn">Invite User</button>
+                        </div>
+                        <div class="table-wrapper">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>User Name</th>
+                                        <th>Email</th>
+                                        <th>Plan</th>
+                                        <th>Start Date</th>
+                                        <th>Expiry Date</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>John Doe</td>
+                                        <td>john.doe@example.com</td>
+                                        <td>Premium</td>
+                                        <td>2023-10-01</td>
+                                        <td>2024-10-01</td>
+                                        <td><span class="status-badge status-success">Success</span></td>
+                                        <td><button class="btn btn-danger btn-sm" onclick="alert('Subscription Cancelled (demo)')">Cancel</button></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Jane Smith</td>
+                                        <td>jane.smith@example.com</td>
+                                        <td>Advanced</td>
+                                        <td>2023-11-15</td>
+                                        <td>2023-12-15</td>
+                                        <td><span class="status-badge status-failed">Failed</span></td>
+                                        <td><button class="btn btn-danger btn-sm" onclick="alert('Subscription Cancelled (demo)')">Cancel</button></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Payment Logs Page -->
+                <section id="adminPayments" class="admin-page">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2>Payment Transactions</h2>
+                        </div>
+                        <div class="table-wrapper">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Transaction ID</th>
+                                        <th>User Details</th>
+                                        <th>Plan</th>
+                                        <th>Amount</th>
+                                        <th>Date</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>txn_123abc456</td>
+                                        <td>John Doe (john.doe@example.com)</td>
+                                        <td>Premium</td>
+                                        <td>$99.00</td>
+                                        <td>2023-10-01</td>
+                                        <td><span class="status-badge status-success">Success</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>txn_789def012</td>
+                                        <td>Jane Smith (jane.smith@example.com)</td>
+                                        <td>Advanced</td>
+                                        <td>$49.00</td>
+                                        <td>2023-11-15</td>
+                                        <td><span class="status-badge status-failed">Failed</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- User Support Page -->
+                <section id="adminUsers" class="admin-page">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2>Re-issue Self-Assessment</h2>
+                        </div>
+                        <div class="form-group">
+                            <label for="userSearch">Find User by Email</label>
+                            <input type="search" id="userSearch" placeholder="Enter user's email...">
+                        </div>
+                        <button class="btn">Search</button>
+                        <hr style="margin: 2rem 0; border: 0; border-top: 1px solid var(--border-color);">
+                        
+                        <!-- Search Result (example) -->
+                        <h4>Search Result:</h4>
+                        <div class="table-wrapper">
+                            <table>
+                                <thead><tr><th>Name</th><th>Email</th><th>Action</th></tr></thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Alice Johnson</td>
+                                        <td>alice.j@example.com</td>
+                                        <td><button class="btn btn-secondary" onclick="alert('Self-assessment re-issued for Alice Johnson (demo)')">Re-Issue Self-Assessment</button></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Contact Requests Page -->
+                <section id="adminContact" class="admin-page">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2>Contact Form Submissions</h2>
+                        </div>
+                        <div class="table-wrapper">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>User</th>
+                                        <th>Message</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Mark Chen<br><small>mark.c@example.com</small></td>
+                                        <td>I'm having trouble accessing my analytics page. It keeps showing an error.</td>
+                                        <td>New</td>
+                                        <td><button class="btn btn-secondary btn-sm" onclick="this.parentElement.previousElementSibling.innerHTML = '<span class=\'status-badge status-reviewed\'>Reviewed</span>'; this.disabled = true;">Mark as Reviewed</button></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Priya Singh<br><small>priya.s@example.com</small></td>
+                                        <td>Question about subscription renewal.</td>
+                                        <td><span class="status-badge status-reviewed">Reviewed</span></td>
+                                        <td><button class="btn btn-secondary btn-sm" disabled>Mark as Reviewed</button></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Invite User Modal -->
+    <div id="inviteUserModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Invite User with Custom Plan</h2>
+                <button id="closeModalBtn" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="inviteForm">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="inviteName">User Name</label>
+                            <input type="text" id="inviteName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="inviteEmail">Email</label>
+                            <input type="email" id="inviteEmail" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="inviteMobile">Mobile Number</label>
+                        <input type="tel" id="inviteMobile" required>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="invitePlan">Select Plan</label>
+                            <select id="invitePlan" style="width: 100%; padding: 0.75rem; font-size: 1rem; border: 1px solid var(--border-color); border-radius: var(--radius);">
+                                <option>Basic</option>
+                                <option>Advanced</option>
+                                <option>Premium</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="inviteAssessments">No. of Self-Assessments</label>
+                            <input type="number" id="inviteAssessments" placeholder="e.g., 5">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="inviteAmount">Amount ($)</label>
+                        <input type="number" id="inviteAmount" placeholder="e.g., 120.00">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="document.getElementById('inviteUserModal').classList.add('hidden')">Cancel</button>
+                <button class="btn" onclick="alert('Invite sent with payment link and temporary password. (demo)'); document.getElementById('inviteUserModal').classList.add('hidden');">Send Invite</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // --- Elements ---
+    const loginScreen = document.getElementById('adminLogin');
+    const adminPanel = document.getElementById('adminPanel');
+    const loginForm = document.getElementById('loginForm');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const navLinks = document.querySelectorAll('.sidebar-nav a');
+    const pages = document.querySelectorAll('.admin-page');
+    const pageTitle = document.getElementById('pageTitle');
+    const inviteUserBtn = document.getElementById('inviteUserBtn');
+    const inviteModal = document.getElementById('inviteUserModal');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const uploadError = document.getElementById('uploadError');
+    const questionFileInput = document.getElementById('questionFile');
+
+    // --- Page Navigation ---
+    function showPage(pageId) {
+        // Hide all pages
+        pages.forEach(page => page.classList.remove('active'));
+        // Show target page
+        const targetPage = document.getElementById(pageId);
+        if (targetPage) {
+            targetPage.classList.add('active');
+        }
+
+        // Update nav link styles
+        navLinks.forEach(link => {
+            link.classList.toggle('active', link.dataset.page === pageId);
+        });
+
+        // Update header title
+        const activeLink = document.querySelector(`.sidebar-nav a[data-page="${pageId}"]`);
+        if (activeLink) {
+            pageTitle.textContent = activeLink.textContent.substring(2); // Remove emoji
+        }
+    }
+
+    navLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const pageId = link.dataset.page;
+            showPage(pageId);
+            // Update URL hash for context, without jumping
+            history.pushState(null, '', `#${pageId.replace('admin', '').toLowerCase()}`);
+        });
+    });
+
+    // --- Authentication ---
+    loginForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        // In a real app, you'd validate credentials here
+        loginScreen.classList.add('hidden');
+        adminPanel.classList.remove('hidden');
+        showPage('adminDashboard'); // Show dashboard on login
+    });
+
+    logoutBtn.addEventListener('click', () => {
+        // Simple logout, just reload the page to go back to login
+        window.location.reload();
+    });
+
+    // --- Modal Handling ---
+    inviteUserBtn.addEventListener('click', () => {
+        inviteModal.classList.remove('hidden');
+    });
+
+    closeModalBtn.addEventListener('click', () => {
+        inviteModal.classList.add('hidden');
+    });
+
+    // Close modal if clicking outside the content
+    inviteModal.addEventListener('click', (e) => {
+        if (e.target === inviteModal) {
+            inviteModal.classList.add('hidden');
+        }
+    });
+
+    // --- File Upload Demo ---
+    questionFileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            // Simulate a file check
+            if (file.name.includes('error')) {
+                uploadError.classList.remove('hidden');
+            } else {
+                uploadError.classList.add('hidden');
+                alert(`File "${file.name}" uploaded successfully for processing. (demo)`);
+            }
+        }
+    });
+
+    // --- Initial State ---
+    // Check hash on load to show the correct page
+    const initialPage = window.location.hash.substring(1);
+    if (initialPage) {
+        const pageId = 'admin' + initialPage.charAt(0).toUpperCase() + initialPage.slice(1);
+        const targetLink = document.querySelector(`.sidebar-nav a[data-page="${pageId}"]`);
+        if (targetLink) {
+            showPage(pageId);
+        }
+    }
+});
+</script>
+
+</body>
+</html>
