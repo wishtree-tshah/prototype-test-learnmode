@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AceMedC Student Portal</title>
+    <style>
+        :root {
+            --brand-green: #0b3d2e;
+            --brand-accent: #2c6e49;
+            --text-dark: #222;
+            --text-light: #666;
+            --error-red: #c62828;
+            --success-green: #2e7d32;
+            --warning-orange: #f57c00;
+            --info-blue: #1976d2;
+            --bg-light: #f4f6f8;
+            --bg-white: #fff;
+            --border-color: #e0e0e0;
+            --radius: 6px;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Arial, sans-serif;
+            background: var(--bg-light);
+            color: var(--text-dark);
+        }
+
+        * { box-sizing: border-box; }
+        .hidden { display: none !important; }
+
+        /* --- Global Components --- */
+        .btn {
+            display: inline-block; background: var(--brand-green); color: #fff;
+            padding: 0.75rem 1.5rem; border: none; border-radius: var(--radius);
+            cursor: pointer; text-decoration: none; font-size: 1rem; font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        .btn:hover { background: var(--brand-accent); }
+        .btn.full-width { display: block; width: 100%; text-align: center; }
+        .btn-secondary { background: var(--bg-white); color: var(--brand-green); border: 1px solid var(--brand-green); }
+        .btn-secondary:hover { background: #f0f0f0; }
+        .btn-danger { background: var(--error-red); }
+        .btn-danger:hover { background: #d32f2f; }
+        .btn:disabled { background: #ccc; cursor: not-allowed; }
+
+        .card {
+            background: var(--bg-white); padding: 1.5rem; border-radius: var(--radius);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 1.5rem;
+        }
+        .card-header {
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1rem;
+        }
+        .card-header h2 { margin: 0; font-size: 1.2rem; }
+
+        .form-group { margin-bottom: 1.5rem; text-align: left; }
+        label { display: block; margin-bottom: 0.5rem; font-weight: 500; }
+        input[type="text"], input[type="email"], input[type="password"], input[type="tel"], input[type="number"], select {
+            width: 100%; padding: 0.75rem; font-size: 1rem;
+            border: 1px solid var(--border-color); border-radius: var(--radius);
+        }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+        /* --- Layout --- */
+        .app-header {
+            background: var(--bg-white); color: var(--text-dark); padding: 0 2rem;
+            display: flex; justify-content: space-between; align-items: center;
+            height: 65px; border-bottom: 1px solid var(--border-color);
+        }
+        .app-header .logo { font-weight: bold; font-size: 1.5rem; color: var(--brand-green); }
+        .app-header nav a { color: var(--text-dark); text-decoration: none; margin-left: 1.5rem; }
+
+        .page-container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+        .auth-container { max-width: 450px; margin: 3rem auto; }
+
+        .page { display: none; }
+        .page.active { display: block; }
+
+        /* --- Dashboard Layout --- */
+        .dashboard-layout { display: flex; align-items: flex-start; gap: 2rem; }
+        .dashboard-sidebar {
+            width: 240px; flex-shrink: 0;
+            background: var(--bg-white); padding: 1rem; border-radius: var(--radius);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .dashboard-sidebar a {
+            display: block; padding: 0.8rem 1rem; text-decoration: none;
+            color: var(--text-dark); border-radius: var(--radius); margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        .dashboard-sidebar a.active, .dashboard-sidebar a:hover { background-color: var(--brand-accent); color: #fff; }
+        .dashboard-main { flex-grow: 1; }
+
+        /* --- Specific Page Styles --- */
+
+        /* Dashboard */
+        .summary-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; }
+        .summary-card { text-align: center; }
+        .summary-card .value { font-size: 2.5rem; font-weight: 600; color: var(--brand-accent); }
+        .summary-card .label { font-size: 1rem; color: var(--text-light); }
+        .chart-placeholder { height: 250px; background: #f0f0f0; display: flex; justify-content: center; align-items: center; color: #999; border-radius: var(--radius); }
+
+        /* Plans */
+        .plan-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; }
+        .plan-card { border: 2px solid var(--border-color); text-align: center; }
+        .plan-card.popular { border-color: var(--brand-accent); }
+        .plan-card h3 { font-size: 1.5rem; margin-top: 0; }
+        .plan-card .price { font-size: 2rem; font-weight: bold; margin: 0.5rem 0; }
+        .plan-card ul { list-style: none; padding: 0; margin: 1.5rem 0; text-align: left; }
+        .plan-card ul li { margin-bottom: 0.75rem; }
+        .plan-card ul li::before { content: '✓'; color: var(--success-green); margin-right: 0.5rem; font-weight: bold; }
+
+        /* Practice Settings */
+        .settings-group { margin-bottom: 2rem; }
+        .settings-group h3 { margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; }
+        .multi-select-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem; }
+        .multi-select-grid label { display: flex; align-items: flex-start; gap: 0.75rem; background: #f9f9f9; padding: 0.75rem; border-radius: var(--radius); cursor: pointer; }
+        .multi-select-grid label:hover { background: #f0f0f0; }
+        .multi-select-grid input { margin-top: 0.2rem; }
+        .multi-select-grid .option-text { display: flex; flex-direction: column; }
+        .multi-select-grid .option-text .title { font-weight: 500; }
+        .multi-select-grid .option-text .description { font-size: 0.85rem; color: var(--text-light); margin-top: 0.2rem; }
+
+        .multi-select-grid input:checked + .option-text .title { font-weight: 600; }
+        .multi-select-grid input:checked + .option-text .description { color: #e0e0e0; }
+        
+        .multi-select-grid label.checked { background-color: var(--brand-accent); color: #fff; border-color: var(--brand-green); }
+        .multi-select-grid label.checked .option-text .description { color: #e0e0e0; }
+
+        /* Tables */
+        .table-wrapper { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 0.85rem 1rem; text-align: left; border-bottom: 1px solid var(--border-color); }
+        thead th { background: #f9fafb; font-weight: 600; }
+        tbody tr { cursor: pointer; }
+        tbody tr:hover { background: #f9f9f9; }
+
+        /* Analytics */
+        .tabs { display: flex; border-bottom: 1px solid var(--border-color); margin-bottom: 1.5rem; }
+        .tab-link { padding: 0.75rem 1.5rem; cursor: pointer; border-bottom: 3px solid transparent; }
+        .tab-link.active { border-bottom-color: var(--brand-accent); font-weight: 600; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+    </style>
+</head>
+<body>
+
+    <header class="app-header">
+        <div class="logo">AceMedC</div>
+        <nav id="nav-logged-out">
+            <a href="#" data-page="plans">Plans</a>
+            <a href="#" data-page="contact">Contact</a>
+            <a href="#" data-page="login">Sign In</a>
+            <a href="#" data-page="signup" class="btn">Sign Up</a>
+        </nav>
+        <nav id="nav-logged-in" class="hidden">
+            <a href="#" data-page="dashboard">Dashboard</a>
+            <a href="#" data-page="profile">Profile</a>
+            <a href="#" id="logoutBtn">Logout</a>
+        </nav>
+    </header>
+
+    <main id="main-content">
+
+        <!-- =======================
+             AUTH & PUBLIC PAGES
+        ======================== -->
+
+        <div id="signup" class="page active">
+            <div class="auth-container">
+                <div class="card">
+                    <h1 style="text-align: center;">Create Your Account</h1>
+                    <form id="signupForm">
+                        <div class="form-grid">
+                            <div class="form-group"><label for="firstName">First Name</label><input type="text" id="firstName" required></div>
+                            <div class="form-group"><label for="lastName">Last Name</label><input type="text" id="lastName" required></div>
+                        </div>
+                        <div class="form-group"><label for="signupEmail">Email</label><input type="email" id="signupEmail" required></div>
+                        <div class="form-group"><label for="signupPassword">Password</label><input type="password" id="signupPassword" required></div>
+                        <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem;">
+                            <input type="checkbox" id="terms" required style="width: auto;">
+                            <label for="terms" style="margin: 0;">I accept the <a href="#" target="_blank">Terms & Conditions</a> and <a href="#" target="_blank">Privacy Policy</a>.</label>
+                        </div>
+                        <button type="submit" class="btn full-width">Create Account</button>
+                    </form>
+                    <p style="text-align: center; margin-top: 1rem;">Already have an account? <a href="#" data-page="login">Sign In</a></p>
+                </div>
+            </div>
+        </div>
+
+        <div id="login" class="page">
+            <div class="auth-container">
+                <div class="card">
+                    <h1 style="text-align: center;">Sign In</h1>
+                    <form id="loginForm">
+                        <div class="form-group"><label for="loginEmail">Email</label><input type="email" id="loginEmail" value="student@acemedc.com" required></div>
+                        <div class="form-group"><label for="loginPassword">Password</label><input type="password" id="loginPassword" value="password" required></div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;"><input type="checkbox" id="rememberMe" style="width: auto;"><label for="rememberMe" style="margin:0;">Remember Me</label></div>
+                            <a href="#" data-page="forgotPassword">Forgot Password?</a>
+                        </div>
+                        <button type="submit" class="btn full-width">Sign In</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div id="forgotPassword" class="page">
+            <div class="auth-container">
+                <div class="card">
+                    <h1 style="text-align: center;">Reset Password</h1>
+                    <p style="text-align: center;">Enter your email to receive a password reset link.</p>
+                    <form id="forgotPasswordForm">
+                        <div class="form-group"><label for="resetEmail">Email</label><input type="email" id="resetEmail" required></div>
+                        <button type="submit" class="btn full-width">Send Reset Link</button>
+                    </form>
+                    <p style="text-align: center; margin-top: 1rem;"><a href="#" data-page="login">Back to Sign In</a></p>
+                </div>
+            </div>
+        </div>
+
+        <div id="plans" class="page">
+            <div class="page-container">
+                <h1 style="text-align: center;">Choose Your Plan</h1>
+                <p style="text-align: center; max-width: 600px; margin: 0 auto 3rem auto;">Unlock your potential with a plan tailored to your needs. Upgrade anytime.</p>
+                <div class="plan-cards">
+                    <div class="card plan-card">
+                        <h3>Basic</h3>
+                        <div class="price">$29<span style="font-size: 1rem; color: var(--text-light)">/mo</span></div>
+                        <ul>
+                            <li>Unlimited Practice Questions</li>
+                            <li>Performance Analytics</li>
+                            <li>1 Self-Assessment/month</li>
+                        </ul>
+                        <button class="btn full-width" data-page="checkout">Choose Basic</button>
+                    </div>
+                    <div class="card plan-card popular">
+                        <div style="background: var(--brand-accent); color: white; padding: 0.5rem; margin: -1.5rem -1.5rem 1.5rem -1.5rem; border-radius: var(--radius) var(--radius) 0 0;">Most Popular</div>
+                        <h3>Advanced</h3>
+                        <div class="price">$49<span style="font-size: 1rem; color: var(--text-light)">/mo</span></div>
+                        <ul>
+                            <li>All Basic Features</li>
+                            <li>3 Self-Assessments/month</li>
+                            <li>AI-Powered Explanations</li>
+                        </ul>
+                        <button class="btn full-width" data-page="checkout">Choose Advanced</button>
+                    </div>
+                    <div class="card plan-card">
+                        <h3>Premium</h3>
+                        <div class="price">$99<span style="font-size: 1rem; color: var(--text-light)">/mo</span></div>
+                        <ul>
+                            <li>All Advanced Features</li>
+                            <li>Unlimited Self-Assessments</li>
+                            <li>1-on-1 Consultation Calls</li>
+                        </ul>
+                        <button class="btn full-width" data-page="checkout">Choose Premium</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="checkout" class="page">
+            <div class="page-container" style="max-width: 700px;">
+                <h1 style="text-align: center;">Checkout</h1>
+                <div class="card">
+                    <h2>Billing Information</h2>
+                    <form id="checkoutForm">
+                        <div class="form-group"><label for="billingName">Full Name</label><input type="text" id="billingName" required></div>
+                        <div class="form-group"><label for="billingEmail">Email</label><input type="email" id="billingEmail" required></div>
+                        <div class="form-group"><label for="billingPhone">Phone Number</label><input type="tel" id="billingPhone" required></div>
+                        <hr style="margin: 2rem 0; border: 0; border-top: 1px solid var(--border-color);">
+                        <h2>Payment Method</h2>
+                        <p>Choose your preferred payment method. You will be redirected to complete the payment.</p>
+                        <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                            <button type="submit" class="btn" style="flex: 1;">Pay with Stripe</button>
+                            <button type="submit" class="btn btn-secondary" style="flex: 1;">Pay with PayPal</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div id="contact" class="page">
+            <div class="page-container" style="max-width: 700px;">
+                <h1 style="text-align: center;">Contact Us</h1>
+                <p style="text-align: center;">Have a question? Fill out the form below and we'll get back to you.</p>
+                <div class="card">
+                    <form id="contactForm">
+                        <div class="form-group"><label for="contactName">Name</label><input type="text" id="contactName" required></div>
+                        <div class="form-group"><label for="contactEmail">Email</label><input type="email" id="contactEmail" required></div>
+                        <div class="form-group"><label for="contactMessage">Message</label><textarea id="contactMessage" rows="5" style="width: 100%; padding: 0.75rem; font-size: 1rem; border: 1px solid var(--border-color); border-radius: var(--radius);" required></textarea></div>
+                        <button type="submit" class="btn full-width">Send Message</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- =======================
+             LOGGED-IN DASHBOARD PAGES
+        ======================== -->
+
+        <div id="dashboard" class="page">
+            <div class="page-container">
+                <div class="dashboard-layout">
+                    <aside class="dashboard-sidebar">
+                        <a href="#" data-page="dashboard" class="active">📊 Dashboard</a>
+                        <a href="#" data-page="practice">✍️ Practice Engine</a>
+                        <a href="#" data-page="history">📜 Previous Tests</a>
+                        <a href="#" data-page="analytics">📈 Analytics</a>
+                        <a href="#" data-page="profile">👤 Profile</a>
+                        <a href="#" data-page="profile">💳 Subscription</a>
+                    </aside>
+                    <main class="dashboard-main">
+                        <h1>Dashboard</h1>
+                        <p>Welcome back, Student! Here's a summary of your progress.</p>
+                        <div class="card" style="text-align: center;">
+                            <button class="btn" data-page="practice" style="font-size: 1.2rem; padding: 1rem 2rem;">🚀 Practice Now</button>
+                        </div>
+                        <div class="summary-cards">
+                            <div class="card summary-card">
+                                <div class="value">82%</div>
+                                <div class="label">My Performance</div>
+                            </div>
+                            <div class="card summary-card">
+                                <div class="value">75%</div>
+                                <div class="label">Average Score</div>
+                            </div>
+                            <div class="card summary-card">
+                                <div class="value">65%</div>
+                                <div class="label">Learning Progress</div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header"><h2>Performance Overview (Correct vs Incorrect)</h2></div>
+                            <div class="chart-placeholder">Pie Chart Placeholder</div>
+                        </div>
+                    </main>
+                </div>
+            </div>
+        </div>
+
+        <div id="practice" class="page">
+            <div class="page-container">
+                <div class="dashboard-layout">
+                    <aside class="dashboard-sidebar">
+                        <a href="#" data-page="dashboard">📊 Dashboard</a>
+                        <a href="#" data-page="practice" class="active">✍️ Practice Engine</a>
+                        <a href="#" data-page="history">📜 Previous Tests</a>
+                        <a href="#" data-page="analytics">📈 Analytics</a>
+                        <a href="#" data-page="profile">👤 Profile</a>
+                        <a href="#" data-page="profile">💳 Subscription</a>
+                    </aside>
+                    <main class="dashboard-main">
+                        <h1>Practice Engine</h1>
+                        <p>Configure a new session to start practicing.</p>
+                        <div class="card">
+                            <form id="practiceSettingsForm">
+                                <div class="settings-group">
+                                    <h3>Mode</h3>
+                                    <div class="multi-select-grid">
+                                        <label class="checked">
+                                            <input type="radio" name="practiceMode" value="learning" checked> 
+                                            <span class="option-text">
+                                                <span class="title">📚 Learning Mode</span>
+                                                <span class="description">Untimed, with instant feedback.</span>
+                                            </span>
+                                        </label>
+                                        <label>
+                                            <input type="radio" name="practiceMode" value="test"> 
+                                            <span class="option-text">
+                                                <span class="title">🎯 Test Mode</span>
+                                                <span class="description">Timed, with results at the end.</span>
+                                            </span>
+                                        </label>
+                                        <label><input type="radio" name="practiceMode" value="assessment"> <span class="option-text"><span class="title">🏆 Self-Assessment</span><span class="description">A fixed, formal test.</span></span></label>
+                                    </div>
+                                </div>
+                                <div class="settings-group">
+                                    <h3>Subjects (Multi-select)</h3>
+                                    <div class="multi-select-grid">
+                                        <label><input type="checkbox" name="subject" value="all"> <span>All Subjects</span></label>
+                                        <label><input type="checkbox" name="subject" value="anatomy"> <span>Anatomy</span></label>
+                                        <label><input type="checkbox" name="subject" value="biochemistry"> <span>Biochemistry</span></label>
+                                        <label><input type="checkbox" name="subject" value="biostatistics"> <span>Biostatistics</span></label>
+                                        <label><input type="checkbox" name="subject" value="embryology"> <span>Embryology</span></label>
+                                        <label><input type="checkbox" name="subject" value="ethics"> <span>Ethics</span></label>
+                                        <label><input type="checkbox" name="subject" value="epidemiology"> <span>Epidemiology</span></label>
+                                        <label><input type="checkbox" name="subject" value="genetics"> <span>Genetics</span></label>
+                                        <label><input type="checkbox" name="subject" value="histology"> <span>Histology</span></label>
+                                        <label><input type="checkbox" name="subject" value="immunology"> <span>Immunology</span></label>
+                                        <label><input type="checkbox" name="subject" value="microbiology"> <span>Microbiology</span></label>
+                                        <label><input type="checkbox" name="subject" value="pathology"> <span>Pathology</span></label>
+                                        <label><input type="checkbox" name="subject" value="pathophysiology"> <span>Pathophysiology</span></label>
+                                        <label><input type="checkbox" name="subject" value="physiology"> <span>Physiology</span></label>
+                                        <label><input type="checkbox" name="subject" value="pharmacology"> <span>Pharmacology</span></label>
+                                    </div>
+                                </div>
+                                <div class="settings-group">
+                                    <h3>Systems (Multi-select)</h3>
+                                    <div class="multi-select-grid">
+                                        <label><input type="checkbox" name="system" value="all"> <span>All Systems</span></label>
+                                        <label><input type="checkbox" name="system" value="musculoskeletal"> <span>Musculoskeletal</span></label>
+                                        <label><input type="checkbox" name="system" value="pulmonary"> <span>Pulmonary</span></label>
+                                        <label><input type="checkbox" name="system" value="cardiovascular"> <span>Cardiovascular</span></label>
+                                        <label><input type="checkbox" name="system" value="neurology"> <span>Neurology</span></label>
+                                        <label><input type="checkbox" name="system" value="renal"> <span>Renal/Genitourinary</span></label>
+                                        <label><input type="checkbox" name="system" value="dermatology"> <span>Dermatology</span></label>
+                                        <label><input type="checkbox" name="system" value="endocrinology"> <span>Endocrinology</span></label>
+                                        <label><input type="checkbox" name="system" value="gastrointestinal"> <span>Gastrointestinal</span></label>
+                                        <label><input type="checkbox" name="system" value="hematology"> <span>Hematology/Oncology</span></label>
+                                        <label><input type="checkbox" name="system" value="obstetrics"> <span>Obstetrics</span></label>
+                                        <label><input type="checkbox" name="system" value="gynecology"> <span>Gynecology</span></label>
+                                        <label><input type="checkbox" name="system" value="pediatrics"> <span>Pediatrics</span></label>
+                                        <label><input type="checkbox" name="system" value="psychiatry"> <span>Psychiatry</span></label>
+                                    </div>
+                                </div>
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label for="difficulty">Difficulty Level</label>
+                                        <select id="difficulty">
+                                            <option value="beginner">Beginner</option>
+                                            <option value="intermediate">Intermediate</option>
+                                            <option value="advanced">Advanced</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="numQuestions">Number of Questions</label>
+                                        <input type="number" id="numQuestions" value="40" disabled>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn full-width">Start Session</button>
+                            </form>
+                        </div>
+                    </main>
+                </div>
+            </div>
+        </div>
+
+        <div id="history" class="page">
+            <div class="page-container">
+                <div class="dashboard-layout">
+                    <aside class="dashboard-sidebar">
+                        <a href="#" data-page="dashboard">📊 Dashboard</a>
+                        <a href="#" data-page="practice">✍️ Practice Engine</a>
+                        <a href="#" data-page="history" class="active">📜 Previous Tests</a>
+                        <a href="#" data-page="analytics">📈 Analytics</a>
+                        <a href="#" data-page="profile">👤 Profile</a>
+                        <a href="#" data-page="profile">💳 Subscription</a>
+                    </aside>
+                    <main class="dashboard-main">
+                        <h1>Previous Tests</h1>
+                        <div class="card" id="previous-tests-card">
+                            <h2>Previous Tests</h2>
+                            <div class="table-wrapper">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Test (#)</th>
+                                            <th>Core Subjects & Systems</th>
+                                            <th># of Questions</th>
+                                            <th>Time Taken</th>
+                                            <th>Score</th>
+                                            <th>Date</th>
+                                            <th>Practice Mode</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr onclick="alert('Opening Test 1 Review...')">
+                                            <td>1</td>
+                                            <td>Anatomy, Physiology / Cardio</td>
+                                            <td>40</td>
+                                            <td>00:35:12</td>
+                                            <td>85%</td>
+                                            <td>20 Nov 2023</td>
+                                            <td>Test</td>
+                                        </tr>
+                                        <tr onclick="alert('Opening Test 2 Review...')">
+                                            <td>2</td>
+                                            <td>Biochemistry / Endocrinology</td>
+                                            <td>20</td>
+                                            <td>00:18:45</td>
+                                            <td>90%</td>
+                                            <td>18 Nov 2023</td>
+                                            <td>Learning</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="card" id="previous-assessments-card">
+                            <h2>Previous Self-Assessments</h2>
+                            <div class="table-wrapper">
+                                <table>
+                                    <thead>
+                                        <tr><th>Test</th><th>Difficulty Level</th><th>Time Taken</th><th>Score</th><th>Date</th></tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr onclick="alert('Opening Self-Assessment 1 Review...')">
+                                            <td>Self-Assessment 1</td>
+                                            <td>Intermediate</td>
+                                            <td>00:55:30</td>
+                                            <td>70% (28/40)</td>
+                                            <td>15 Nov 2023</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </main>
+                </div>
+            </div>
+        </div>
+
+        <div id="analytics" class="page">
+            <div class="page-container">
+                <div class="dashboard-layout">
+                    <aside class="dashboard-sidebar">
+                        <a href="#" data-page="dashboard">📊 Dashboard</a>
+                        <a href="#" data-page="practice">✍️ Practice Engine</a>
+                        <a href="#" data-page="history">📜 Previous Tests</a>
+                        <a href="#" data-page="analytics" class="active">📈 Analytics</a>
+                        <a href="#" data-page="profile">👤 Profile</a>
+                        <a href="#" data-page="profile">💳 Subscription</a>
+                    </aside>
+                    <main class="dashboard-main">
+                        <h1>Performance Analytics</h1>
+                        <div class="card">
+                            <div class="tabs">
+                                <div class="tab-link active" data-tab="subject">By Subject</div>
+                                <div class="tab-link" data-tab="system">By System</div>
+                            </div>
+                            <div id="tab-subject" class="tab-content active">
+                                <h3>Performance by Subject</h3>
+                                <div class="chart-placeholder">Bar Chart: Anatomy (85%), Physiology (72%), Biochemistry (91%)</div>
+                            </div>
+                            <div id="tab-system" class="tab-content">
+                                <h3>Performance by System</h3>
+                                <div class="chart-placeholder">Bar Chart: Cardiovascular (90%), Nervous (68%), Respiratory (78%)</div>
+                            </div>
+                        </div>
+                    </main>
+                </div>
+            </div>
+        </div>
+
+        <div id="profile" class="page">
+            <div class="page-container">
+                <div class="dashboard-layout">
+                    <aside class="dashboard-sidebar">
+                        <a href="#" data-page="dashboard">📊 Dashboard</a>
+                        <a href="#" data-page="practice">✍️ Practice Engine</a>
+                        <a href="#" data-page="history">📜 Previous Tests</a>
+                        <a href="#" data-page="analytics">📈 Analytics</a>
+                        <a href="#" data-page="profile" class="active">👤 Profile</a>
+                        <a href="#" data-page="profile">💳 Subscription</a>
+                    </aside>
+                    <main class="dashboard-main">
+                        <h1>Profile & Account</h1>
+                        <div class="card">
+                            <h2>Account Information</h2>
+                            <form id="profileForm">
+                                <div class="form-grid">
+                                    <div class="form-group"><label>First Name</label><input type="text" value="John"></div>
+                                    <div class="form-group"><label>Last Name</label><input type="text" value="Doe"></div>
+                                </div>
+                                <div class="form-group"><label>Email</label><input type="email" value="student@acemedc.com" disabled></div>
+                                <div class="form-group"><label>Phone</label><input type="tel" value="123-456-7890"></div>
+                                <button type="submit" class="btn">Save Changes</button>
+                            </form>
+                        </div>
+                        <div class="card">
+                            <h2>Subscription Details</h2>
+                            <p><strong>Current Plan:</strong> Advanced</p>
+                            <p><strong>Status:</strong> Active</p>
+                            <p><strong>Next Renewal Date:</strong> December 25, 2024</p>
+                            <button class="btn btn-danger" onclick="alert('Subscription cancelled. Access will remain until expiry.')">Cancel Subscription</button>
+                            <button class="btn" style="margin-left: 1rem;" data-page="plans">Upgrade Plan</button>
+                        </div>
+                        <div class="card">
+                            <h2>Security</h2>
+                            <form id="changePasswordForm">
+                                <div class="form-group"><label>Current Password</label><input type="password"></div>
+                                <div class="form-group"><label>New Password</label><input type="password"></div>
+                                <div class="form-group"><label>Confirm New Password</label><input type="password"></div>
+                                <button type="submit" class="btn">Update Password</button>
+                            </form>
+                        </div>
+                    </main>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- State & Elements ---
+        const state = {
+            isLoggedIn: false,
+            hasSubscription: false,
+            currentPage: 'signup'
+        };
+
+        const pages = document.querySelectorAll('.page');
+        const navLoggedIn = document.getElementById('nav-logged-in');
+        const navLoggedOut = document.getElementById('nav-logged-out');
+
+        // --- Page Navigation ---
+        function showPage(pageId) {
+            if (!document.getElementById(pageId)) {
+                console.error(`Page with id "${pageId}" not found.`);
+                return;
+            }
+            pages.forEach(p => p.classList.toggle('active', p.id === pageId));
+            state.currentPage = pageId;
+            window.scrollTo(0, 0);
+
+            // Update sidebar active links
+            const dashboardSidebarLinks = document.querySelectorAll('.dashboard-sidebar a');
+            dashboardSidebarLinks.forEach(link => {
+                link.classList.toggle('active', link.dataset.page === pageId);
+            });
+        }
+
+        // Listen for clicks on the entire document body to handle all `data-page` links
+        document.body.addEventListener('click', (e) => {
+            // Find the closest ancestor element that has a `data-page` attribute
+            const target = e.target.closest('[data-page]');
+            if (target) {
+                e.preventDefault();
+                showPage(target.dataset.page);
+            }
+        });
+
+        // --- Authentication Logic ---
+        function updateNav() {
+            navLoggedIn.classList.toggle('hidden', !state.isLoggedIn);
+            navLoggedOut.classList.toggle('hidden', state.isLoggedIn);
+        }
+
+        function login(hasSub) {
+            state.isLoggedIn = true;
+            state.hasSubscription = hasSub;
+            updateNav();
+            if (state.hasSubscription) {
+                showPage('dashboard');
+            } else {
+                showPage('plans');
+            }
+        }
+
+        function logout() {
+            state.isLoggedIn = false;
+            state.hasSubscription = false;
+            updateNav();
+            showPage('login');
+        }
+
+        // --- Form Handlers (Simulations) ---
+
+        document.getElementById('signupForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            alert('Account created! Welcome to AceMedC.');
+            // After signing up, log the user in with their new subscription
+            login(true);
+        });
+
+        document.getElementById('loginForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            // Simulate login for a user who already has a subscription
+            login(true);
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            logout();
+        });
+
+        document.getElementById('forgotPasswordForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            alert('Password reset link sent! Please check your email. (This is a demo, no email is sent).');
+            // In a real app, you'd show a code entry page after this.
+            showPage('login');
+        });
+
+        document.getElementById('checkoutForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            alert('Redirecting to payment provider... (Demo)\nPayment successful! Please create your account to activate your plan.');
+            // For a new user, after payment, redirect to sign up page.
+            showPage('signup');
+        });
+
+        document.getElementById('contactForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            alert('Thank you for your message! We have received your query and will get back to you shortly.');
+            e.target.reset();
+        });
+
+        // --- Practice Settings Logic ---
+        const practiceSettingsForm = document.getElementById('practiceSettingsForm');
+        practiceSettingsForm.addEventListener('change', (e) => {
+            const input = e.target;
+            if (input.type === 'radio' && input.name === 'practiceMode') {
+                // Visually update all radio button labels in the group
+                const labels = practiceSettingsForm.querySelectorAll('input[name="practiceMode"]');
+                labels.forEach(radio => {
+                    radio.parentElement.classList.toggle('checked', radio.checked);
+                });
+            }
+
+            // Handle "All" checkboxes
+            if (input.type === 'checkbox' && input.value === 'all') {
+                const groupName = input.name; // 'subject' or 'system'
+                const isChecked = input.checked;
+                // Find all checkboxes in the same group, excluding the 'all' checkbox itself
+                const otherCheckboxes = practiceSettingsForm.querySelectorAll(`input[name="${groupName}"]:not([value="all"])`);
+                otherCheckboxes.forEach(checkbox => {
+                    checkbox.checked = isChecked;
+                });
+            }
+            if (input.type === 'checkbox' && input.value !== 'all') {
+                // If any individual item is unchecked, uncheck the "All" box
+                if (!input.checked) {
+                    const groupName = input.name;
+                    const allCheckbox = practiceSettingsForm.querySelector(`input[name="${groupName}"][value="all"]`);
+                    if (allCheckbox) {
+                        allCheckbox.checked = false;
+                    }
+                }
+            }
+        });
+
+        document.getElementById('practiceSettingsForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            // This now opens the local exam.html, which has been updated to be the test engine.
+            // In a real app, you'd pass more parameters like selected subjects/systems.
+            window.open('https://wishtree-tshah.github.io/prototype-test-learnmode/', '_blank');
+        });
+
+        document.getElementById('profileForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            alert('Profile information updated successfully!');
+        });
+
+        document.getElementById('changePasswordForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            alert('Password changed successfully!');
+            e.target.reset();
+        });
+
+        // --- Analytics Tabs ---
+        const tabsContainer = document.querySelector('.tabs');
+        if (tabsContainer) {
+            tabsContainer.addEventListener('click', (e) => {
+                if (e.target.classList.contains('tab-link')) {
+                    const tabId = e.target.dataset.tab;
+                    document.querySelectorAll('.tab-link').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    e.target.classList.add('active');
+                    document.getElementById(`tab-${tabId}`).classList.add('active');
+                }
+            });
+        }
+
+        // --- Initial Load ---
+        updateNav();
+        showPage(state.currentPage);
+    });
+    </script>
+
+</body>
+</html>
